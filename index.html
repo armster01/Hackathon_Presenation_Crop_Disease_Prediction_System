@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Disease Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">Crop Disease Prediction System</h1>
+        
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <form id="predictionForm" class="space-y-4">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <input type="file" id="imageInput" accept="image/*" class="hidden">
+                    <label for="imageInput" class="cursor-pointer">
+                        <div id="preview" class="mb-4">
+                            <img id="imagePreview" class="mx-auto max-h-64 hidden">
+                            <div id="dropText" class="text-gray-500">
+                                Drop your image here or click to upload
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+                    Predict Disease
+                </button>
+            </form>
+            
+            <div id="results" class="mt-8 hidden">
+                <h2 class="text-xl font-semibold mb-4">Results</h2>
+                <div class="space-y-4">
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <p class="font-medium">Predicted Disease:</p>
+                        <p id="prediction" class="text-lg text-blue-600"></p>
+                    </div>
+                    
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <p class="font-medium">Confidence:</p>
+                        <p id="confidence" class="text-lg"></p>
+                    </div>
+                    
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <p class="font-medium">Recommendations:</p>
+                        <ul id="recommendations" class="list-disc list-inside text-gray-700"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Image preview
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const dropText = document.getElementById('dropText');
+        
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    dropText.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Form submission
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('image', imageInput.files[0]);
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('results').classList.remove('hidden');
+                    document.getElementById('prediction').textContent = data.prediction.replace(/_/g, ' ');
+                    document.getElementById('confidence').textContent = `${(data.confidence * 100).toFixed(2)}%`;
+                    
+                    const recommendationsList = document.getElementById('recommendations');
+                    recommendationsList.innerHTML = '';
+                    data.recommendations.forEach(rec => {
+                        const li = document.createElement('li');
+                        li.textContent = rec;
+                        recommendationsList.appendChild(li);
+                    });
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error processing the image. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
